@@ -1,0 +1,33 @@
+nbproject
+npm-debug.log
+node_modules
+.sass-cache
+CLAUDE.md
+
+# Build outputs
+dist/
+
+# Vendor dependencies (generated from node_modules)
+vendors/
+bower_components/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+JQUERY_PHASE_OUT_PLAN.md
+COMPREHENSIVE_IMPROVEMENT_PLAN.md
+release.md
+JQUERY_ELIMINATION_PLAN.md
+.env
+.env.*
+!.env.example
+.netlify/
