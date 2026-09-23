@@ -16,6 +16,7 @@ const panel = {
     { title: 'Amani Administration', groups: [
       { icon: 'bi-house', title: 'Overview & Reports', items: [['index.html','Property Portfolio'],['index2.html','Listings & Occupancy'],['index3.html','Tenant Financials'],['index4.html','Billing & Reports'],['widgets.html','Live KPIs'],['landing.html','Amani Overview']] },
       { icon: 'bi-buildings', title: 'Properties & Leasing', items: [['form.html','Properties'],['form_advanced.html','Property Units'],['projects.html','Properties / Listings'],['project_detail.html','Property Detail'],['pricing_tables.html','Unit Pricing'],['level2.html','Location Hierarchy'],['map.html','Property Locations'],['form_wizards.html','Tenancy Setup'],['rental_admin.html','Tenancies / Rentals'],['calendar.html','Notices & Vacating'],['form_validation.html','Maintenance Requests']] },
+      { icon: 'bi-chat-left-text', title: 'Enquiries & Messages', items: [['listing_enquiries.html','Property Listing Enquiries'],['contact_messages.html','Contact Messages']] },
       { icon: 'bi-people', title: 'Clients & Finance', items: [['tables.html','Clients / Tenants'],['invoice.html','Payments & Receipts'],['tables_dynamic.html','Billing Charges'],['e_commerce.html','Billing Accounts'],['inbox.html','Contract Delivery'],['form_upload.html','Client Documents']] },
       { icon: 'bi-window', title: 'Content & Team', items: [['general_elements.html','Website Content'],['media_gallery.html','Property Media'],['icons.html','Property Features'],['form_buttons.html','Amani Services'],['contacts.html','Agents / Team'],['profile.html','Agent Profiles']] },
       { icon: 'bi-bar-chart-line', title: 'Visual Reports', items: [['chartjs.html','Portfolio Visuals'],['echarts.html','Financial Visuals'],['other_charts.html','Operations Visuals']] }
@@ -28,6 +29,8 @@ const profiles = {
   'index2.html': { type:'dashboard', title:'Listings & Occupancy', charts:['units_by_status','properties_by_status','reservations_by_status','portfolio_snapshot'], table:'units' },
   'index3.html': { type:'dashboard', title:'Tenant Financials', charts:['tenancies_by_status','monthly_financial_comparison','monthly_received_payments','payments_by_method'], table:'tenancies' },
   'index4.html': { type:'dashboard', title:'Billing & Reports', charts:['monthly_financial_comparison','financial_position','charges_by_type','contracts_by_status'], table:'payments' },
+  'listing_enquiries.html': { type:'resource', title:'Property Listing Enquiries', resource:'listing-enquiries' },
+  'contact_messages.html': { type:'resource', title:'Contact Messages', resource:'contact-messages' },
   'form.html': { type:'resource', title:'Properties', resource:'properties' },
   'form_advanced.html': { type:'resource', title:'Property Units', resource:'units' },
   'form_validation.html': { type:'resource', title:'Maintenance Requests', resource:'maintenance' },
@@ -252,22 +255,57 @@ function dashboardKpis(stats, title) {
   return [['Properties',stats.total_properties],['Units',stats.total_units],['Clients',stats.total_clients],['Tenancies',stats.total_tenancies]];
 }
 
+const TABLE_HIDDEN_FIELDS = new Set([
+  'created_at','updated_at','deleted_at','created_by','updated_by','deleted_by',
+  'search_tsv','metadata','legacy_json'
+]);
+
+function isAuditContext() {
+  return /audit/i.test(String(currentMeta?.key || '')) ||
+    /audit/i.test(String(currentMeta?.title || ''));
+}
+
+function isTableHiddenField(key) {
+  if (!key) return true;
+  if (/_json$/i.test(key)) return true;
+  if (!isAuditContext() && TABLE_HIDDEN_FIELDS.has(key)) return true;
+  return false;
+}
+
 function chooseColumns(rows, max=8) {
-  const preferred = ['id','title','full_name','tenant_name','unit_code','status','contract_status','payment_date','amount','payment_method','receipt_no','reference_no','updated_at','created_at'];
-  const keys = [...new Set(rows.flatMap(row => Object.keys(row || {})))];
-  return [...preferred.filter(k=>keys.includes(k)), ...keys.filter(k=>!preferred.includes(k) && !/_json$|metadata|search_tsv/.test(k))].slice(0,max);
+  const preferred = [
+    'title','full_name','tenant_name','unit_code','property_name','status',
+    'contract_status','payment_date','amount','payment_method','receipt_no',
+    'reference_no','phone','email','id'
+  ];
+  const keys = [...new Set(rows.flatMap(row => Object.keys(row || {})))]
+    .filter(k => !isTableHiddenField(k));
+  return [
+    ...preferred.filter(k => keys.includes(k)),
+    ...keys.filter(k => !preferred.includes(k))
+  ].slice(0,max);
+}
+
+function statusCell(value) {
+  const raw = String(value || '');
+  const label = labelize(raw);
+  const cls = raw.toLowerCase().replace(/[^a-z0-9_-]+/g,'-');
+  return `<span class="amani-status-pill status-${escapeHtml(cls)}">${escapeHtml(label)}</span>`;
 }
 
 function displayCell(value, key='') {
-  if (value === null || value === undefined || value === '') return '—';
+  if (value === null || value === undefined || value === '') return '<span class="amani-muted">—</span>';
+  if (/status$/i.test(key)) return statusCell(value);
+  if (typeof value === 'boolean') return `<span class="amani-boolean ${value ? 'yes' : 'no'}">${value ? 'Yes' : 'No'}</span>`;
   if (typeof value === 'object') return escapeHtml(safeJson(value).replace(/\s+/g,' ').slice(0,140));
   if (/amount|rent|balance|cost|price|charge|fee/i.test(key) && Number.isFinite(Number(value))) return escapeHtml(money(value));
   return escapeHtml(String(value));
 }
 
 function tableHtml(rows, columns = chooseColumns(rows)) {
-  if (!rows.length) return '<div class="amani-empty">No live Amani records found.</div>';
-  return `<div class="amani-table-wrap"><table class="table table-striped table-hover amani-table"><thead><tr>${columns.map(c=>`<th>${escapeHtml(labelize(c))}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr>${columns.map(c=>`<td title="${escapeHtml(typeof row[c]==='object'?safeJson(row[c]):row[c])}">${displayCell(row[c],c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  if (!rows.length) return '<div class="amani-empty">No records found.</div>';
+  const cleanColumns = columns.filter(c => !isTableHiddenField(c));
+  return `<div class="amani-table-wrap"><table class="table amani-table"><thead><tr>${cleanColumns.map(c=>`<th>${escapeHtml(labelize(c))}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr>${cleanColumns.map(c=>`<td title="${escapeHtml(typeof row[c]==='object'?safeJson(row[c]):row[c])}">${displayCell(row[c],c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
 
 async function renderDashboard(profile) {
@@ -300,14 +338,18 @@ async function getResourceMeta(resource) {
 }
 
 function actionsCell(row) {
-  return `<div class="btn-group btn-group-sm"><button class="btn btn-outline-secondary" data-action="view" data-id="${escapeHtml(row.id)}">View</button><button class="btn btn-outline-primary" data-action="edit" data-id="${escapeHtml(row.id)}">Edit</button><button class="btn btn-outline-danger" data-action="delete" data-id="${escapeHtml(row.id)}">Delete</button></div>`;
+  return `<div class="amani-row-actions">
+    <button class="btn amani-action-btn" data-action="view" data-id="${escapeHtml(row.id)}" title="View" aria-label="View">View</button>
+    <button class="btn amani-action-btn primary" data-action="edit" data-id="${escapeHtml(row.id)}" title="Edit" aria-label="Edit">Edit</button>
+    <button class="btn amani-action-btn danger" data-action="delete" data-id="${escapeHtml(row.id)}" title="Delete" aria-label="Delete">Delete</button>
+  </div>`;
 }
 
 function resourceTable(rows) {
-  if (!rows.length) return '<div class="amani-empty">No live Amani records found.</div>';
+  if (!rows.length) return '<div class="amani-empty">No records found.</div>';
   const displayRows = rows.map(row => recordForDisplay(row,currentMeta));
   const cols = chooseColumns(displayRows,7);
-  return `<div class="amani-table-wrap"><table class="table table-striped table-hover amani-table"><thead><tr>${cols.map(c=>`<th>${escapeHtml(labelize(c))}</th>`).join('')}<th>Actions</th></tr></thead><tbody>${rows.map((row,index)=>`<tr>${cols.map(c=>`<td>${displayCell(displayRows[index][c],c)}</td>`).join('')}<td>${actionsCell(row)}</td></tr>`).join('')}</tbody></table></div>`;
+  return `<div class="amani-table-wrap"><table class="table amani-table"><thead><tr>${cols.map(c=>`<th>${escapeHtml(labelize(c))}</th>`).join('')}<th class="amani-actions-heading">Actions</th></tr></thead><tbody>${rows.map((row,index)=>`<tr>${cols.map(c=>`<td>${displayCell(displayRows[index][c],c)}</td>`).join('')}<td class="amani-actions-cell">${actionsCell(row)}</td></tr>`).join('')}</tbody></table></div>`;
 }
 
 const BOOLEAN_FIELDS = new Set([

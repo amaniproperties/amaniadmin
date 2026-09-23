@@ -81,3 +81,118 @@ body.sidebar-collapsed .amani-menu .submenu-caret { display: none; }
   .amani-area-badge { display: none; }
   .amani-status { max-width: 230px; }
 }
+
+
+/* Modern data tables */
+.amani-table-wrap {
+  overflow: auto;
+  max-width: 100%;
+  background: #fff;
+  border: 1px solid var(--amani-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(42,63,84,.06);
+}
+.amani-table {
+  min-width: 760px;
+  margin: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+.amani-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 13px 16px;
+  background: #f7f9fb;
+  border-bottom: 1px solid #e5eaf0;
+  color: #52606d;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.amani-table tbody td {
+  padding: 13px 16px;
+  border-bottom: 1px solid #edf1f5;
+  color: #344054;
+  vertical-align: middle;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.amani-table tbody tr:last-child td { border-bottom: 0; }
+.amani-table tbody tr { transition: background .15s ease, box-shadow .15s ease; }
+.amani-table tbody tr:hover { background: #f9fbfd; }
+.amani-status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 4px 9px;
+  border: 1px solid #d9e1e8;
+  border-radius: 999px;
+  background: #f7f9fb;
+  color: #475467;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+.amani-status-pill.status-active,
+.amani-status-pill.status-vacant,
+.amani-status-pill.status-occupied,
+.amani-status-pill.status-paid,
+.amani-status-pill.status-completed {
+  background: #edf8f2;
+  border-color: #cfe9d9;
+  color: #18794e;
+}
+.amani-status-pill.status-pending,
+.amani-status-pill.status-reserved,
+.amani-status-pill.status-defaulted {
+  background: #fff7e6;
+  border-color: #f3dfb0;
+  color: #946200;
+}
+.amani-status-pill.status-inactive,
+.amani-status-pill.status-cancelled,
+.amani-status-pill.status-vacated,
+.amani-status-pill.status-overdue {
+  background: #fff1f0;
+  border-color: #f0d1ce;
+  color: #b42318;
+}
+.amani-row-actions { display: flex; justify-content: flex-end; gap: 6px; }
+.amani-action-btn {
+  padding: 5px 9px;
+  border: 1px solid #d8e0e8;
+  border-radius: 7px;
+  background: #fff;
+  color: #475467;
+  font-size: 11px;
+  font-weight: 600;
+}
+.amani-action-btn:hover { background: #f5f7fa; color: #2a3f54; }
+.amani-action-btn.primary { border-color: #b8d7ef; color: #1769aa; }
+.amani-action-btn.danger { border-color: #efcfcc; color: #b42318; }
+.amani-actions-heading, .amani-actions-cell { text-align: right; }
+.amani-muted { color: #98a2b3; }
+.amani-boolean {
+  display: inline-flex;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #f2f4f7;
+  color: #475467;
+  font-size: 11px;
+  font-weight: 700;
+}
+.amani-boolean.yes { background: #edf8f2; color: #18794e; }
+.amani-empty {
+  padding: 32px;
+  text-align: center;
+  color: #667085;
+  background: #fff;
+  border: 1px solid var(--amani-border);
+  border-radius: 12px;
+}
